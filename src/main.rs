@@ -21,25 +21,21 @@ struct App {
     gpu_renderer: Option<gpu_renderer::GpuRenderer>,
     time: f32,
     physics_solver: solver::PhysicsSolver,
-    frame_count: u32,
     mouse_pos: Vector2<f32>,
-    last_fps_time: Instant,
     paused: bool
 }
 
 impl App {
     fn new() -> Self {
         let mut physics_solver = solver::PhysicsSolver::new(WIDTH as i32, HEIGHT as i32);
-        physics_solver.add_particle_grid(100, 10, Vector2::new(100.0, 100.0), 10.0, 10.0, 1.0, false, Vector2::new(0.0,0.0));
+        physics_solver.add_particle_grid(100, 10, Vector2::new(100.0, 100.0), 10.0, 10.0, 1.0, false, Vector2::new(1.0,0.0));
         Self {
             window: None,
             mouse_pos: Vector2::new(0.0,0.0),
             gpu_renderer: None,
             time: 0.0,
             physics_solver,
-            frame_count: 0,
-            last_fps_time: Instant::now(),
-            paused: true
+            paused: false
         }
     }
 }
@@ -120,12 +116,9 @@ impl ApplicationHandler for App {
             }
     
             WindowEvent::RedrawRequested => {
-                if !self.paused {
-                    // Update the physics simulation
-                    self.physics_solver.update(1E-3, 1, Vector2::new(0.0, 0.0));
-                    self.time += 1E-3;
-                }
-    
+
+                self.physics_solver.update(1E-3, 1, Vector2::new(0.0, 0.0));
+
                 let num_physics_particles = self.physics_solver.positions.len();
                 let mut gpu_particles: Vec<gpu_renderer::GpuParticle> = Vec::with_capacity(num_physics_particles);
                 for i in 0..num_physics_particles {

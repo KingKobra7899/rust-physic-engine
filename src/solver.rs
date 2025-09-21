@@ -1,4 +1,3 @@
-// solver.rs - Fixed version with deferred deletion system
 use fast_poisson::Poisson2D;
 use nalgebra::{clamp, Vector2};
 use rand::{rngs::ThreadRng, Rng};
@@ -95,6 +94,7 @@ impl PhysicsSolver {
         self.accelerations.push(Vector2::new(0.0, 0.0));
         self.masses.push(mass);
         self.radii.push(radius);
+        self.num_particles += 1;
     }
 
 
@@ -120,9 +120,6 @@ impl PhysicsSolver {
             self.positions[i] = new_pos;
 
             self.accelerations[i] = Vector2::new(0.0, 0.0);
-    
-
-            self.radii[i] = f32::max(self.masses[i].sqrt() * 2.0, 2.0);
         }
     }
 
@@ -217,12 +214,12 @@ impl PhysicsSolver {
 
     pub fn update(&mut self, dt: f32, substeps: i32, grav: Vector2<f32>) {
         self.update_quadtree();
-        
         for _ in 0..substeps {
             self.update_quadtree();
             self.inter_particle_collisions();
             self.apply_rect_constraint(self.boundary);
             self.integrate_forces(dt / (substeps as f32), grav, 1.50, 15.0);
+            print!("Help");
         }
     }
 }
