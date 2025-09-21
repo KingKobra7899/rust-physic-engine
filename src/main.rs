@@ -30,10 +30,7 @@ struct App {
 impl App {
     fn new() -> Self {
         let mut physics_solver = solver::PhysicsSolver::new(WIDTH as i32, HEIGHT as i32);
-        
-        
-        physics_solver.init_world(3000, 0.99);
-        
+        physics_solver.add_particle_grid(100, 10, Vector2::new(100.0, 100.0), 10.0, 10.0, 1.0, false, Vector2::new(0.0,0.0));
         Self {
             window: None,
             mouse_pos: Vector2::new(0.0,0.0),
@@ -138,59 +135,12 @@ impl ApplicationHandler for App {
                             self.physics_solver.positions[i].y,
                         ],
                         radius: self.physics_solver.radii[i],
-                        is_plant: self.physics_solver.is_plant[i] as u32
+                        is_plant: 0
                     });
                 }
     
                 if let (Some(renderer), Some(window)) = (&mut self.gpu_renderer, &self.window) {
                     renderer.render(window, &gpu_particles, num_physics_particles as u32);
-                }
-                
-                // ---
-                // MODIFIED CODE: Write to CSV on every frame
-                // Note: This will open and close the file for every frame, which can be inefficient.
-                // For a more performant solution, consider opening the file once at the start of the simulation.
-                if let Ok(mut file) = OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open("simulation_data.csv")
-                {
-                    // If the file is new (empty), write the header
-                    if file.metadata().map(|m| m.len()).unwrap_or(0) == 0 {
-                        let _ = writeln!(file, "time,num_cells,num_plants,avg_speed,avg_brain_size,avg_sight_r,avg_predation,avg_age");
-                    }
-                    
-                    let now = Instant::now();
-                    // Use total elapsed time since the simulation began
-                    let time_elapsed = self.time;
-                    
-                    let _ = writeln!(
-                        file,
-                        "{},{},{},{},{},{},{},{}",
-                        time_elapsed,
-                        self.physics_solver.num_cells,
-                        self.physics_solver.num_plants,
-                        self.physics_solver.avg_speed, // Averages are now per-frame, so no division needed
-                        self.physics_solver.avg_brain_size,
-                        self.physics_solver.avg_sight_r,
-                        self.physics_solver.avg_pred,
-                        self.physics_solver.avg_age
-                    );
-                }
-                
-                // Reset averages for the next frame
-                self.physics_solver.reset_avgs();
-                // ---
-    
-                // Original FPS counter logic
-                self.frame_count += 1;
-                let now = Instant::now();
-                if now.duration_since(self.last_fps_time).as_secs() >= 1 {
-                    let fps = self.frame_count as f64
-                        / now.duration_since(self.last_fps_time).as_secs_f64();
-                    println!("FPS: {:.1}", fps);
-                    self.frame_count = 0;
-                    self.last_fps_time = now;
                 }
             }
 
@@ -199,9 +149,9 @@ impl ApplicationHandler for App {
             }
 
             WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                self.physics_solver.add_cell(self.mouse_pos, 1.0, 10.0, Vector2::new(0.0, 0.0));
+                self.physics_solver.add_particle(self.mouse_pos, 1.0, 10.0, Vector2::new(0.0, 0.0));
             }
-            
+
     
             WindowEvent::Resized(physical_size) => {
                 if let Some(renderer) = &mut self.gpu_renderer {
@@ -232,5 +182,4 @@ fn main() {
     let mut app = App::new();
 
     event_loop.run_app(&mut app).expect("EventLoop run failed");
-    app.physics_solver.save_random_creature(); // Save a random creature's brain at the end
 }
