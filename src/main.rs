@@ -28,7 +28,7 @@ struct App {
 impl App {
     fn new() -> Self {
         let mut physics_solver = solver::PhysicsSolver::new(WIDTH as i32, HEIGHT as i32);
-        physics_solver.add_particle_grid(100, 10, Vector2::new(100.0, 100.0), 10.0, 10.0, 1.0, false, Vector2::new(1.0,0.0));
+        physics_solver.add_particle_grid(50, 50, Vector2::new(100.0, 100.0), 5.0, 10.0, 1.0, false, Vector2::new(-1.0,0.0));
         Self {
             window: None,
             mouse_pos: Vector2::new(0.0,0.0),
@@ -117,7 +117,7 @@ impl ApplicationHandler for App {
     
             WindowEvent::RedrawRequested => {
 
-                self.physics_solver.update(1E-3, 1, Vector2::new(0.0, 0.0));
+                self.physics_solver.update(1E-3, 1, Vector2::new(0.0, 5000.0));
 
                 let num_physics_particles = self.physics_solver.positions.len();
                 let mut gpu_particles: Vec<gpu_renderer::GpuParticle> = Vec::with_capacity(num_physics_particles);
@@ -142,7 +142,7 @@ impl ApplicationHandler for App {
             }
 
             WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                self.physics_solver.add_particle(self.mouse_pos, 1.0, 10.0, Vector2::new(0.0, 0.0));
+                self.physics_solver.add_particle(self.mouse_pos, 10.0, 10.0, Vector2::new(0.0, 0.0));
             }
 
     

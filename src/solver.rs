@@ -218,8 +218,8 @@ impl PhysicsSolver {
             self.update_quadtree();
             self.inter_particle_collisions();
             self.apply_rect_constraint(self.boundary);
-            self.integrate_forces(dt / (substeps as f32), grav, 1.50, 15.0);
-            print!("Help");
+            //self.apply_newtonian_grav(100.0);
+            self.integrate_forces(dt / (substeps as f32), Vector2::new(0.0,0.0), 1.50, 15.0);
         }
     }
 }
