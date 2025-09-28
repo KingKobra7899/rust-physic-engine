@@ -35,7 +35,7 @@ impl App {
             gpu_renderer: None,
             time: 0.0,
             physics_solver,
-            paused: false
+            paused: true
         }
     }
 }
@@ -116,8 +116,11 @@ impl ApplicationHandler for App {
             }
     
             WindowEvent::RedrawRequested => {
-
-                self.physics_solver.update(1E-3, 1, Vector2::new(0.0, 5000.0));
+                
+                if !self.paused{
+                    self.physics_solver.update(1E-3, 1, Vector2::new(0.0, 5000.0));
+                }
+                
 
                 let num_physics_particles = self.physics_solver.positions.len();
                 let mut gpu_particles: Vec<gpu_renderer::GpuParticle> = Vec::with_capacity(num_physics_particles);
