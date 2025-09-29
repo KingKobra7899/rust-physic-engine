@@ -32,28 +32,23 @@ fn circle_falloff(dist: f32, radius: f32) -> f32 {
 @fragment
 fn fs_main(in: FragmentInput) -> @location(0) vec4<f32> {
     let pixel_coord = in.frag_coord.xy;
-
-    // White background for light theme
-    var final_color = vec3<f32>(1.0, 1.0, 1.0);
+    var field = 0.0;
 
     for (var i: u32 = 0u; i < num_particles_uniform; i = i + 1u) {
         let p = particles[i];
         let dist = length(pixel_coord - p.position);
-
-        if (dist < p.radius) {
-            let falloff = circle_falloff(dist, p.radius);
-
-            // Colors tuned for clarity in print & digital
-          var base_color: vec3<f32>;
-          if (p.is_plant == 1u) {
-              base_color = vec3<f32>(0.16, 0.55, 0.28); // Dark green
-          } else {
-              base_color = vec3<f32>(0.80, 0.12, 0.16); // Crimson red
-          }
-
-            final_color = mix(final_color, base_color, falloff);
-        }
+        // Squared falloff for smooth metaball blending
+        let r2 = (p.radius * p.radius)/5;
+        let d2 = dist * dist;
+        field += r2 / d2;
     }
+
+    // Use saturate to clamp and smooth the transition
+    let alpha = saturate((field - 0.5) * 10.0);
+
+    let bg_color = vec3<f32>(1.0, 1.0, 1.0);
+    let fg_color = vec3<f32>(0.34, 0.7, 0.43);
+    let final_color = mix(bg_color, fg_color, alpha);
 
     return vec4<f32>(final_color, 1.0);
 }

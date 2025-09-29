@@ -3,7 +3,7 @@ use nalgebra::{clamp, Vector2};
 use rand::{rngs::ThreadRng, Rng};
 mod quadtree;
 use quadtree::{QuadTree, Rect};
-
+type Connection = (usize, usize, f32);
 pub struct PhysicsSolver {
     pub positions: Vec<Vector2<f32>>,
     pub old_positions: Vec<Vector2<f32>>,
@@ -16,7 +16,8 @@ pub struct PhysicsSolver {
     pub rng: ThreadRng,
     pub qt: QuadTree,
     center: Vector2<f32>,
-    pub(crate) num_particles: usize
+    pub(crate) num_particles: usize,
+    springs: Vec<Connection>
 }
 
 impl PhysicsSolver {
@@ -29,11 +30,33 @@ impl PhysicsSolver {
             accelerations: Vec::new(),
             masses: Vec::new(),
             radii: Vec::new(),
+            springs: Vec::new(),
             width,
             height,
             boundary: Rect::new((width / 2) as f32, (height / 2) as f32, (width / 2) as f32, (height / 2) as f32),
             center: Vector2::new((width as f32) / 2.0, (height as f32) / 2.0),
             qt: QuadTree::new(Rect::new((width as f32) / 2.0, (height as f32) / 2.0, (width as f32) / 2.0, (height as f32) / 2.0), 5),
+        }
+    }
+    pub fn connect_particles(&mut self, p1: usize, p2:usize){
+        let dist = (self.positions[p1] - self.positions[p2]);
+
+        self.springs.push((p1, p2, 0.0f32));
+    }
+    pub fn apply_springs(&mut self, k: f32) {
+        let springs = self.springs.clone();
+        for spring in &springs {
+            let p1 = spring.0;
+            let p2 = spring.1;
+            let d = spring.2;
+            let axis: Vector2<f32> = self.positions[p1] - self.positions[p2];
+            let dist = axis.magnitude();
+
+            let norm = axis / dist;
+
+            let force = k * (dist - d) * norm;
+            self.accelerate_particle(p1, -force);
+            self.accelerate_particle(p2, force);
         }
     }
     pub fn add_particle_grid(
@@ -215,10 +238,10 @@ impl PhysicsSolver {
     pub fn update(&mut self, dt: f32, substeps: i32, grav: Vector2<f32>) {
         self.update_quadtree();
         for _ in 0..substeps {
-            self.update_quadtree();
             self.inter_particle_collisions();
             self.apply_rect_constraint(self.boundary);
             //self.apply_newtonian_grav(100.0);
+            self.apply_springs(10.0);
             self.integrate_forces(dt / (substeps as f32), grav, 1.50, 15.0);
         }
     }
