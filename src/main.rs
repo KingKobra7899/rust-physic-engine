@@ -28,7 +28,7 @@ struct App {
 impl App {
     fn new() -> Self {
         let mut physics_solver = solver::PhysicsSolver::new(WIDTH as i32, HEIGHT as i32);
-        physics_solver.add_particle_grid(50, 50, Vector2::new(100.0, 100.0), 5.0, 10.0, 1.0, false, Vector2::new(0.0,0.0));
+        physics_solver.add_particle_grid(25,25,  Vector2::new(100.0, 100.0), 10.0, 20.0, 1.0, false, Vector2::new(5.0,0.0));
 
         Self {
             window: None,

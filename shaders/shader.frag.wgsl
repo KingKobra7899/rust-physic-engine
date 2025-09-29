@@ -37,18 +37,13 @@ fn fs_main(in: FragmentInput) -> @location(0) vec4<f32> {
     for (var i: u32 = 0u; i < num_particles_uniform; i = i + 1u) {
         let p = particles[i];
         let dist = length(pixel_coord - p.position);
-        // Squared falloff for smooth metaball blending
-        let r2 = (p.radius * p.radius)/5;
-        let d2 = dist * dist;
-        field += r2 / d2;
+        if dist < p.radius{
+            field = 1.0;
+        }
     }
 
     // Use saturate to clamp and smooth the transition
-    let alpha = saturate((field - 0.5) * 10.0);
 
-    let bg_color = vec3<f32>(1.0, 1.0, 1.0);
-    let fg_color = vec3<f32>(0.34, 0.7, 0.43);
-    let final_color = mix(bg_color, fg_color, alpha);
 
-    return vec4<f32>(final_color, 1.0);
+    return vec4<f32>(field, field, field, 1.0);
 }

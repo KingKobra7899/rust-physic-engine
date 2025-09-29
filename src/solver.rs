@@ -1,6 +1,6 @@
 use fast_poisson::Poisson2D;
 use nalgebra::{clamp, Vector2};
-use rand::{rngs::ThreadRng, Rng};
+use rand::{random_range, rngs::ThreadRng, Rng};
 mod quadtree;
 use quadtree::{QuadTree, Rect};
 type Connection = (usize, usize, f32);
@@ -39,26 +39,45 @@ impl PhysicsSolver {
         }
     }
     pub fn connect_particles(&mut self, p1: usize, p2:usize){
-        let dist = (self.positions[p1] - self.positions[p2]);
+        let dist = (self.positions[p1] - self.positions[p2]).magnitude();
 
-        self.springs.push((p1, p2, 0.0f32));
+        self.springs.push((p1, p2,dist));
     }
-    pub fn apply_springs(&mut self, k: f32) {
-        let springs = self.springs.clone();
-        for spring in &springs {
+    pub fn apply_springs(&mut self, k: f32, c: f32) {
+        let mut to_remove: Vec<usize> = Vec::new();
+        for i in 0..self.springs.len() {
+            let spring = self.springs[i];
             let p1 = spring.0;
             let p2 = spring.1;
             let d = spring.2;
+
             let axis: Vector2<f32> = self.positions[p1] - self.positions[p2];
             let dist = axis.magnitude();
-
             let norm = axis / dist;
 
             let force = k * (dist - d) * norm;
-            self.accelerate_particle(p1, -force);
-            self.accelerate_particle(p2, force);
+
+
+            let vel1 = self.positions[p1] - self.old_positions[p1];
+            let vel2 = self.positions[p2] - self.old_positions[p2];
+            let rel_vel = vel1 - vel2;
+
+            let damp = c * rel_vel.dot(&norm) * norm;
+
+            let total = force + damp;
+
+            self.accelerate_particle(p1, -total);
+            self.accelerate_particle(p2, total);
+
+            if dist > d * random_range(1.3..2.0){
+                to_remove.push(i)
+            }
+        }
+        for &i in to_remove.iter().rev() {
+            self.springs.remove(i);
         }
     }
+
     pub fn add_particle_grid(
         &mut self,
         num_x: usize,
@@ -274,7 +293,7 @@ impl PhysicsSolver {
             self.inter_particle_collisions();
             self.apply_rect_constraint(self.boundary);
             //self.apply_newtonian_grav(100.0);
-            self.apply_springs(10000.0);
+            self.apply_springs(75000.0, 50000.0);
             self.integrate_forces(dt / (substeps as f32), grav, 1.50, 15.0);
         }
     }
