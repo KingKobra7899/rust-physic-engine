@@ -70,6 +70,8 @@ impl PhysicsSolver {
         random_r: bool,
         vel: Vector2<f32>
     ) {
+        let start_idx = self.positions.len(); // Track where grid particles start
+
         for y in 0..num_y {
             for x in 0..num_x {
                 let pos_x = start_pos.x + x as f32 * spacing;
@@ -79,6 +81,37 @@ impl PhysicsSolver {
                 } else {
                     let random_mult: f32 = self.rng.random_range(0.75..1.25);
                     self.add_particle(Vector2::new(pos_x, pos_y), mass * random_mult * random_mult, radius * random_mult, vel);
+                }
+            }
+        }
+
+        // Connect particles to neighbors
+        for y in 0..num_y {
+            for x in 0..num_x {
+                let idx = start_idx + y * num_x + x;
+
+                // Connect to right neighbor
+                if x < num_x - 1 {
+                    let right = idx + 1;
+                    self.connect_particles(idx, right);
+                }
+
+                // Connect to bottom neighbor
+                if y < num_y - 1 {
+                    let bottom = idx + num_x;
+                    self.connect_particles(idx, bottom);
+                }
+
+                // Connect to bottom-right diagonal
+                if x < num_x - 1 && y < num_y - 1 {
+                    let bottom_right = idx + num_x + 1;
+                    self.connect_particles(idx, bottom_right);
+                }
+
+                // Connect to bottom-left diagonal
+                if x > 0 && y < num_y - 1 {
+                    let bottom_left = idx + num_x - 1;
+                    self.connect_particles(idx, bottom_left);
                 }
             }
         }
@@ -241,7 +274,7 @@ impl PhysicsSolver {
             self.inter_particle_collisions();
             self.apply_rect_constraint(self.boundary);
             //self.apply_newtonian_grav(100.0);
-            self.apply_springs(10.0);
+            self.apply_springs(10000.0);
             self.integrate_forces(dt / (substeps as f32), grav, 1.50, 15.0);
         }
     }
