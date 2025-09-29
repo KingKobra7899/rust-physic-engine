@@ -146,7 +146,7 @@ impl ApplicationHandler for App {
             }
 
             WindowEvent::MouseInput { state: ElementState::Pressed, button: MouseButton::Left, .. } => {
-                self.physics_solver.add_particle(self.mouse_pos, 10.0, 10.0, Vector2::new(0.0, 0.0));
+                self.physics_solver.add_particle_grid(5,5,  self.mouse_pos, 10.0, 20.0, 1.0, false, Vector2::new(0.0,0.0));
             }
 
     
