@@ -1,6 +1,5 @@
-use fast_poisson::Poisson2D;
-use nalgebra::{clamp, Vector2};
-use rand::{random_range, rngs::ThreadRng, Rng};
+use nalgebra::Vector2;
+use rand::{Rng, random_range, rngs::ThreadRng};
 mod quadtree;
 use quadtree::{QuadTree, Rect};
 type Connection = (usize, usize, f32);
@@ -17,7 +16,7 @@ pub struct PhysicsSolver {
     pub qt: QuadTree,
     center: Vector2<f32>,
     pub(crate) num_particles: usize,
-    springs: Vec<Connection>
+    springs: Vec<Connection>,
 }
 
 impl PhysicsSolver {
@@ -33,15 +32,28 @@ impl PhysicsSolver {
             springs: Vec::new(),
             width,
             height,
-            boundary: Rect::new((width / 2) as f32, (height / 2) as f32, (width / 2) as f32, (height / 2) as f32),
+            boundary: Rect::new(
+                (width / 2) as f32,
+                (height / 2) as f32,
+                (width / 2) as f32,
+                (height / 2) as f32,
+            ),
             center: Vector2::new((width as f32) / 2.0, (height as f32) / 2.0),
-            qt: QuadTree::new(Rect::new((width as f32) / 2.0, (height as f32) / 2.0, (width as f32) / 2.0, (height as f32) / 2.0), 5),
+            qt: QuadTree::new(
+                Rect::new(
+                    (width as f32) / 2.0,
+                    (height as f32) / 2.0,
+                    (width as f32) / 2.0,
+                    (height as f32) / 2.0,
+                ),
+                5,
+            ),
         }
     }
-    pub fn connect_particles(&mut self, p1: usize, p2:usize){
+    pub fn connect_particles(&mut self, p1: usize, p2: usize) {
         let dist = (self.positions[p1] - self.positions[p2]).magnitude();
 
-        self.springs.push((p1, p2,dist));
+        self.springs.push((p1, p2, dist));
     }
     pub fn apply_springs(&mut self, k: f32, c: f32) {
         let mut to_remove: Vec<usize> = Vec::new();
@@ -57,7 +69,6 @@ impl PhysicsSolver {
 
             let force = k * (dist - d) * norm;
 
-
             let vel1 = self.positions[p1] - self.old_positions[p1];
             let vel2 = self.positions[p2] - self.old_positions[p2];
             let rel_vel = vel1 - vel2;
@@ -69,7 +80,7 @@ impl PhysicsSolver {
             self.accelerate_particle(p1, -total);
             self.accelerate_particle(p2, total);
 
-            if dist > d * random_range(1.3..2.0){
+            if dist > d * random_range(1.3..2.0) {
                 to_remove.push(i)
             }
         }
@@ -87,7 +98,7 @@ impl PhysicsSolver {
         spacing: f32,
         mass: f32,
         random_r: bool,
-        vel: Vector2<f32>
+        vel: Vector2<f32>,
     ) {
         let start_idx = self.positions.len(); // Track where grid particles start
 
@@ -99,7 +110,12 @@ impl PhysicsSolver {
                     self.add_particle(Vector2::new(pos_x, pos_y), mass, radius, vel);
                 } else {
                     let random_mult: f32 = self.rng.random_range(0.75..1.25);
-                    self.add_particle(Vector2::new(pos_x, pos_y), mass * random_mult * random_mult, radius * random_mult, vel);
+                    self.add_particle(
+                        Vector2::new(pos_x, pos_y),
+                        mass * random_mult * random_mult,
+                        radius * random_mult,
+                        vel,
+                    );
                 }
             }
         }
@@ -153,7 +169,8 @@ impl PhysicsSolver {
                 let dist: f32 = norm.magnitude();
 
                 if dist > 0.0 {
-                    let grav_mag: f32 = (grav * self.masses[i] * self.masses[n as usize]) / (dist * dist);
+                    let grav_mag: f32 =
+                        (grav * self.masses[i] * self.masses[n as usize]) / (dist * dist);
                     let force: Vector2<f32> = (norm / dist) * (grav_mag);
 
                     self.accelerate_particle(i, -1.0 * force / 2.0);
@@ -172,7 +189,6 @@ impl PhysicsSolver {
         self.num_particles += 1;
     }
 
-
     pub fn accelerate_particle(&mut self, index: usize, force: Vector2<f32>) {
         if index < self.accelerations.len() && index < self.masses.len() {
             self.accelerations[index] += force / self.masses[index];
@@ -183,7 +199,6 @@ impl PhysicsSolver {
         for i in 0..self.num_particles as usize {
             let pos = self.positions[i];
             let old_pos = self.old_positions[i];
-    
 
             let displacement = pos - old_pos;
 
@@ -200,7 +215,7 @@ impl PhysicsSolver {
 
     pub fn update_quadtree(&mut self) {
         self.qt.clear();
-        
+
         for i in 0..self.num_particles as usize {
             self.qt.insert(&self.positions[i], i as i32);
         }
@@ -211,32 +226,32 @@ impl PhysicsSolver {
             let pos: Vector2<f32> = self.positions[i];
             let r: f32 = self.radii[i];
             let col_box = Rect::new(pos.x, pos.y, 3.0 * r, 3.0 * r);
-    
+
             let indices = self.qt.query(&col_box);
-    
+
             for n in indices {
                 if n == (i as i32) {
                     continue;
                 }
-                
+
                 // Add bounds check before accessing
                 if (n as usize) >= self.num_particles as usize {
                     continue;
                 }
-                
+
                 let other_pos: Vector2<f32> = self.positions[n as usize];
                 let other_r: f32 = self.radii[n as usize];
-    
+
                 let col_axis: Vector2<f32> = pos - other_pos;
                 let dist = col_axis.magnitude();
-    
+
                 if dist < (r + other_r) && dist > 0.0 {
                     let norm: Vector2<f32> = col_axis / dist;
                     let overlap: f32 = (r + other_r) - dist;
-    
+
                     let sep1: f32 = overlap * (other_r / (r + other_r));
                     let sep2: f32 = overlap * (r / (r + other_r));
-                    
+
                     self.positions[i] += 0.5 * norm * sep1;
                     self.positions[n as usize] -= 0.5 * norm * sep2;
                 }
@@ -264,12 +279,12 @@ impl PhysicsSolver {
         for i in 0..self.num_particles {
             let pos = &mut self.positions[i as usize];
             let r = self.radii[i as usize];
-    
+
             let y_top = rectangle.y - rectangle.h;
             let y_bottom = rectangle.y + rectangle.h;
             let x_left = rectangle.x - rectangle.w;
             let x_right = rectangle.x + rectangle.w;
-    
+
             // Top boundary
             if pos.y - r < y_top {
                 pos.y = y_top + r;
@@ -277,7 +292,7 @@ impl PhysicsSolver {
             } else if pos.y + r > y_bottom {
                 pos.y = y_bottom - r;
             }
-    
+
             // Left boundary
             if pos.x - r < x_left {
                 pos.x = x_left + r;
